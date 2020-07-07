@@ -2,6 +2,7 @@
 const Users = require("../model/user.auth");
 const { ErrorHandler } = require("../util/errorhandling");
 const { asyncHandler } = require("../util/asyncHandler");
+const { jwtVerification } = require("../middleware/jwt");
 
 // @desc register a user
 // @route POST /api/v1/auth/register
@@ -16,8 +17,8 @@ exports.register = asyncHandler(async (req, res, next) => {
     role,
   });
 
-  const data = await user.save();
-  if (!data) {
+  user = await user.save();
+  if (!user) {
     return next(
       new ErrorHandler(404, "Enter while inserting a registering a new user")
     );
@@ -25,7 +26,10 @@ exports.register = asyncHandler(async (req, res, next) => {
 
   return res.status(200).json({
     success: true,
-    data,
+    data: {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+    },
   });
 });
 
@@ -39,7 +43,7 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorHandler(400, "Please provide email and password"));
   }
 
-  const user = await Users.findOne({
+  let user = await Users.findOne({
     email,
   }).select("+password");
 
@@ -52,15 +56,30 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorHandler(401, "Invalid credentials"));
   }
 
+  const accessToken = await user.createAccessToken();
+  const refreshToken = await user.createRefreshToken();
+
+  user.accessToken = accessToken;
+  user.refreshToken = refreshToken;
+
+  user = await user.save();
+
   return res.status(200).json({
     success: true,
-    data: user,
+    data: {
+      accessToken: user.accessToken,
+      refreshToken: user.refreshToken,
+    },
   });
 });
 
 // @desc logout a user
 // @route POST /api/v1/auth/logout
 // @access private
-exports.logout = (req, res, next) => {
+exports.logout = asyncHandler(async (req, res, next) => {
+  const user = await Users.findOne({ email: req.email });
+  user.accessToken = undefined;
+  user.refreshToken = undefined;
+  user.save();
   return res.status(200).json({ success: true, data: {} });
-};
+});
