@@ -1,10 +1,30 @@
-const express = require("express");
+require('dotenv').config({ path: './config/.env' });
+const colors = require('colors');
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const db = require('./config/db');
+const auth = require('./routes/user.auth');
+const { handleError, ErrorHandler } = require('./util/errorhandling');
 
 const app = express();
-const port = 3000;
-app.get("/", (req, res) => {
-  res.json({ hello: "Hello World!" });
+
+// connect the database
+db();
+
+// create application/json parser
+const jsonParser = bodyParser.json();
+
+app.use('/api/v1/auth', jsonParser, auth);
+
+app.all('*', (req, res, next) => {
+    next(new ErrorHandler(404, `Can't find ${req.originalUrl} on this server!`));
 });
-app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`);
+
+app.use((err, req, res, next) => {
+    handleError(err, res);
+});
+
+app.listen(process.env.PORT, () => {
+    console.log(`App listening at http://localhost:${process.env.PORT}`.cyan);
 });
