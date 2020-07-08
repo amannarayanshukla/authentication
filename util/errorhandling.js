@@ -26,9 +26,16 @@ const handleError = (err, res) => {
     statusCode = 500;
   }
 
+  if (err && err.message && err.message.toLowerCase() === "jwt expired") {
+    statusCode = 400;
+  }
+
   if (err.code === 11000) {
     statusCode = 400;
     message = `Email or username already in use.`;
+  }
+  if (!statusCode) {
+    statusCode = 500;
   }
   res.status(statusCode).json({
     success: false,

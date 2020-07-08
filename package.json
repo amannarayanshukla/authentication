@@ -23,6 +23,7 @@
     "lodash": "^4.17.15",
     "mongodb": "^3.5.9",
     "mongoose": "^5.9.21",
+    "nodemailer": "^6.4.10",
     "validator": "^13.1.1"
   },
   "devDependencies": {

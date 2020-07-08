@@ -58,7 +58,10 @@ const UserSchema = new Schema(
       default: 0,
     },
     lockUntil: Number,
-    resetPasswordToken: String,
+    resetPasswordToken: {
+      type: String,
+      index: true,
+    },
     resetPasswordExpire: Date,
     accessToken: String,
     refreshToken: String,
@@ -68,7 +71,7 @@ const UserSchema = new Schema(
   }
 );
 
-//Encrypt password using bcrypt
+// Encrypt password using bcrypt
 UserSchema.pre("save", async function (next) {
   let user = this;
 
@@ -78,22 +81,19 @@ UserSchema.pre("save", async function (next) {
   // generate a salt
   const salt = await bcrypt.genSalt(saltRounds);
   // hash the password using our new salt and override the current password with the hashed one
-  user.password = await bcrypt
-    .hash(user.password, salt)
-    .catch((err) => next(new Errorhandler(500, "Can't hash password")));
+  user.password = await bcrypt.hash(user.password, salt);
+
   user.accessToken = await user.createAccessToken();
-  // .catch((err) => next(new Errorhandler(500, "Can't create token")));
   user.refreshToken = await user.createRefreshToken();
-  // .catch((err) => next(new Errorhandler(500, "Can't create token")));
   next();
 });
 
-//Compare password
+// Compare password
 UserSchema.methods.comparePassword = function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-//Create access token
+// Create access token
 UserSchema.methods.createAccessToken = function () {
   return jwt.sign(
     { email: this.email, role: this.role },
@@ -102,7 +102,7 @@ UserSchema.methods.createAccessToken = function () {
   );
 };
 
-//Refresh token
+// Refresh token
 UserSchema.methods.createRefreshToken = function () {
   return jwt.sign(
     { email: this.email, role: this.role },
@@ -111,7 +111,7 @@ UserSchema.methods.createRefreshToken = function () {
   );
 };
 
-//Verify JWT token
+// Verify JWT token
 UserSchema.methods.verifyJWTToken = function (token) {
   return jwt.verify(token, process.env.JWT_ACCESS_SECRET_KEY);
 };
