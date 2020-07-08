@@ -7,16 +7,16 @@ const {
   login,
   logout,
   forgot,
-  reset,
+  resetPassword,
+  addPassword,
 } = require("../controller/user.auth");
 
 const router = express.Router();
 
-router
-  .post("/register", register)
-  .post("/login", login)
-  .post("/logout", jwtVerification, logout)
-  .post("/forgot", forgot)
-  .post("/reset/:token", reset);
+router.route("/reset/:token").get(resetPassword).post(addPassword);
+router.route("/register").post(register);
+router.route("/login").post(login);
+router.route("/logout").post(jwtVerification, logout);
+router.route("/forgot").post(forgot);
 
 module.exports = router;
