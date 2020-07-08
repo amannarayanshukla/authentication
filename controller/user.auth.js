@@ -5,7 +5,6 @@ const crypto = require("crypto");
 const Users = require("../model/user.auth");
 const { ErrorHandler } = require("../util/errorhandling");
 const { asyncHandler } = require("../util/asyncHandler");
-// const { jwtVerification } = require("../middleware/jwt");
 
 // @desc register a user
 // @route POST /api/v1/auth/register
@@ -27,13 +26,19 @@ exports.register = asyncHandler(async (req, res, next) => {
     );
   }
 
-  return res.status(200).json({
-    success: true,
-    data: {
-      accessToken: user.accessToken,
-      refreshToken: user.refreshToken,
-    },
-  });
+  return res
+    .cookie("authentication", user.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .status(200)
+    .json({
+      success: true,
+      data: {
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
+      },
+    });
 });
 
 // @desc login a user
@@ -67,13 +72,19 @@ exports.login = asyncHandler(async (req, res, next) => {
 
   user = await user.save();
 
-  return res.status(200).json({
-    success: true,
-    data: {
-      accessToken: user.accessToken,
-      refreshToken: user.refreshToken,
-    },
-  });
+  return res
+    .cookie("authentication", user.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .status(200)
+    .json({
+      success: true,
+      data: {
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
+      },
+    });
 });
 
 // @desc logout a user
@@ -98,7 +109,7 @@ exports.forgot = asyncHandler(async (req, res, next) => {
   const resetPasswordExpire = Date.now() + 360000;
   user.resetPasswordToken = resetPasswordToken;
   user.resetPasswordExpire = resetPasswordExpire;
-  user.save();
+  await user.save();
 
   // Generate test SMTP service account from ethereal.email
   // Only needed if you don't have a real mail account for testing
@@ -135,15 +146,33 @@ exports.forgot = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc reset a user's password
-// @route POST /api/v1/auth/forgot
+// @desc check if token is valid or not
+// @route GET /api/v1/auth/reset
 // @access public
-exports.reset = asyncHandler(async (req, res, next) => {
+exports.resetPassword = asyncHandler(async (req, res, next) => {
+  const token = req.params.token;
+  const user = await Users.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    return next(
+      new ErrorHandler(400, "Invalid password reset token or it has expired.")
+    );
+  }
+  return res.status(200).json({
+    success: true,
+    data: {},
+  });
+});
+
+//@desc reset user's password
+//@route POST /api/v1/auth/reset
+//@access public
+exports.addPassword = asyncHandler(async (req, res, next) => {
   const token = req.params.token;
   const { newPassword } = req.body;
-  if (!token) {
-    next(new ErrorHandler(400, "No token is found"));
-  }
 
   const user = await Users.findOne({
     resetPasswordToken: token,
@@ -159,6 +188,34 @@ exports.reset = asyncHandler(async (req, res, next) => {
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
   await user.save();
+
+  // Generate test SMTP service account from ethereal.email
+  // Only needed if you don't have a real mail account for testing
+  let testAccount = await nodemailer.createTestAccount();
+
+  // create reusable transporter object using the default SMTP transport
+  let transporter = nodemailer.createTransport({
+    host: "smtp.ethereal.email",
+    port: 587,
+    secure: false, // true for 465, false for other ports
+    auth: {
+      user: testAccount.user, // generated ethereal user
+      pass: testAccount.pass, // generated ethereal password
+    },
+  });
+
+  // send mail with defined transport object
+  let info = await transporter.sendMail({
+    from: "noreply@imaman.in", // sender address
+    to: user.email, // list of receivers
+    subject: "Password has been updated", // Subject line
+    text: `You are receiving this because you (or someone else) has reset the password for your account.\n\n
+          The email related to this is ${user.email} and username is ${user.username}`,
+  });
+
+  console.log("Message sent: %s", info.messageId);
+  console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
+
   return res.status(200).json({
     success: true,
     data: {},
