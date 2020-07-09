@@ -1,17 +1,21 @@
 "use strict";
 const nodemailer = require("nodemailer");
+const uuidv4 = require("uuid").v4;
 
 const crypto = require("crypto");
 const Users = require("../model/user.auth");
 const { ErrorHandler } = require("../util/errorhandling");
 const { asyncHandler } = require("../util/asyncHandler");
+const { client } = require("../config/db");
 
 // @desc register a user
 // @route POST /api/v1/auth/register
 // @access Public
 exports.register = asyncHandler(async (req, res, next) => {
+  const uuid = uuidv4();
   const { email, name, username, password, role } = req.body;
   let user = new Users({
+    uuid,
     email,
     name,
     username,
@@ -26,17 +30,29 @@ exports.register = asyncHandler(async (req, res, next) => {
     );
   }
 
+  client.set(uuid, user.accessToken);
+
   return res
-    .cookie("authentication", user.accessToken, {
+    .status(200)
+    .cookie("authentication_accessToken", user.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     })
-    .status(200)
+    .cookie("authentication_refreshToken", user.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .cookie("authentication_uuid", uuid, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+
     .json({
       success: true,
       data: {
         accessToken: user.accessToken,
         refreshToken: user.refreshToken,
+        uuid,
       },
     });
 });
@@ -46,7 +62,7 @@ exports.register = asyncHandler(async (req, res, next) => {
 // @access Public
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
-
+  let uuid, accessToken, refreshToken;
   if (!email || !password) {
     return next(new ErrorHandler(400, "Please provide email and password"));
   }
@@ -64,25 +80,37 @@ exports.login = asyncHandler(async (req, res, next) => {
     return next(new ErrorHandler(401, "Invalid credentials"));
   }
 
-  const accessToken = await user.createAccessToken();
-  const refreshToken = await user.createRefreshToken();
+  accessToken = await user.createAccessToken();
+  refreshToken = await user.createRefreshToken();
 
   user.accessToken = accessToken;
   user.refreshToken = refreshToken;
 
   user = await user.save();
+  uuid = user.uuid;
+
+  client.set(uuid, accessToken);
 
   return res
-    .cookie("authentication", user.accessToken, {
+    .status(200)
+    .cookie("authentication_accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
     })
-    .status(200)
+    .cookie("authentication_refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .cookie("authentication_uuid", uuid, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
     .json({
       success: true,
       data: {
         accessToken: user.accessToken,
         refreshToken: user.refreshToken,
+        uuid,
       },
     });
 });
@@ -95,7 +123,15 @@ exports.logout = asyncHandler(async (req, res, next) => {
   user.accessToken = undefined;
   user.refreshToken = undefined;
   user.save();
-  return res.status(200).json({ success: true, data: {} });
+
+  // deleting a key
+  client.del(user.uuid, function (err, reply) {
+    // reply is null when the key is missing
+    if (err && !reply) {
+      return next(new ErrorHandler(400, `Invalid access token`));
+    }
+    return res.status(200).json({ success: true, data: {} });
+  });
 });
 
 // @desc forgot a user's password
@@ -167,9 +203,9 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-//@desc reset user's password
-//@route POST /api/v1/auth/reset
-//@access public
+// @desc reset user's password
+// @route POST /api/v1/auth/reset
+// @access public
 exports.addPassword = asyncHandler(async (req, res, next) => {
   const token = req.params.token;
   const { newPassword } = req.body;
@@ -220,4 +256,51 @@ exports.addPassword = asyncHandler(async (req, res, next) => {
     success: true,
     data: {},
   });
+});
+
+// @desc refresh the user's access token
+//@route POST /api/v1/auth/token
+//@access public
+exports.token = asyncHandler(async (req, res, next) => {
+  //refresh token is something that changes frequently should be index it??
+  const { refreshToken } = req.body;
+  let uuid;
+  const user = await Users.findOne({ refreshToken });
+  if (!user) {
+    return next(new ErrorHandler(400, `Invalid refresh token`));
+  }
+  const decode = user.verifyJWTToken(
+    refreshToken,
+    process.env.JWT_REFRESH_SECRET_KEY
+  );
+  if (!decode) {
+    return next(new ErrorHandler(400, "Invalid refresh token"));
+  }
+  const accessToken = user.createAccessToken();
+  user.accessToken = accessToken;
+  uuid = user.uuid;
+  client.set(user.uuid, accessToken);
+  await user.save();
+  return res
+    .status(200)
+    .cookie("authentication_accessToken", accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .cookie("authentication_refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .cookie("authentication_uuid", uuid, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    })
+    .json({
+      success: true,
+      data: {
+        accessToken: user.accessToken,
+        refreshToken: user.refreshToken,
+        uuid,
+      },
+    });
 });
