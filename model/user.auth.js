@@ -1,3 +1,29 @@
+/*
+{
+  email:
+  name:
+  username:
+  password:
+  role:
+  loginAttempts:
+  lockUntil: Number,
+-----------------
+	isLocked:
+	when was it locked
+  }
+{
+  accessToken: String,
+  refreshToken: String,
+
+}
+
+{
+ resetPasswordToken:
+  resetPasswordExpire: Date,
+ user_id
+}
+* */
+
 "use strict";
 
 const mongoose = require("mongoose");
@@ -13,6 +39,10 @@ const Schema = mongoose.Schema;
 
 const UserSchema = new Schema(
   {
+    uuid: {
+      type: String,
+      index: true,
+    },
     email: {
       type: String,
       trim: true,
@@ -112,8 +142,8 @@ UserSchema.methods.createRefreshToken = function () {
 };
 
 // Verify JWT token
-UserSchema.methods.verifyJWTToken = function (token) {
-  return jwt.verify(token, process.env.JWT_ACCESS_SECRET_KEY);
+UserSchema.methods.verifyJWTToken = function (token, secret) {
+  return jwt.verify(token, secret);
 };
 
 module.exports = mongoose.model("Users", UserSchema);

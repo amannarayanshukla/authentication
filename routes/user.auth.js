@@ -9,6 +9,7 @@ const {
   forgot,
   resetPassword,
   addPassword,
+  token,
 } = require("../controller/user.auth");
 
 const router = express.Router();
@@ -18,5 +19,6 @@ router.route("/register").post(register);
 router.route("/login").post(login);
 router.route("/logout").post(jwtVerification, logout);
 router.route("/forgot").post(forgot);
+router.route("/token").post(token);
 
 module.exports = router;

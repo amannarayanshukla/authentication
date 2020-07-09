@@ -21,20 +21,30 @@ const handleError = (err, res) => {
     statusCode = 400;
     message = message.replace(/\(.*?\)/gi, "");
   }
-
-  if (err && err.message && err.message.toLowerCase() === "invalid signature") {
-    statusCode = 500;
-  }
-
-  if (err && err.message && err.message.toLowerCase() === "jwt expired") {
-    statusCode = 400;
-  }
-
-  if (err.code === 11000) {
+  if (err && err.message) {
+    if (err.message.toLowerCase() === "invalid signature") {
+      statusCode = 500;
+    } else if (err.message.toLowerCase() === "jwt expired") {
+      statusCode = 400;
+    } else if (err.message.toLowerCase() === "invalid access token") {
+      statusCode = 400;
+      message = err.result;
+    } else if (
+      err.message.toLowerCase() === "command_obj.callback is not a function"
+    ) {
+      statusCode = 400;
+      message = `Please check the input.`;
+    } else if (
+      err.message.toLowerCase() ===
+      "cannot read property 'verifyjwttoken' of null"
+    ) {
+      statusCode = 400;
+      message = `invalid refresh token `;
+    }
+  } else if (err.code === 11000) {
     statusCode = 400;
     message = `Email or username already in use.`;
-  }
-  if (!statusCode) {
+  } else if (!statusCode) {
     statusCode = 500;
   }
   res.status(statusCode).json({
