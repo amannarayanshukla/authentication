@@ -15,7 +15,7 @@ db();
 // create application/json parser
 const jsonParser = bodyParser.json();
 
-app.use("/api/v1/auth", jsonParser, auth);
+app.use("/api/v1", jsonParser, auth);
 
 app.all("*", (req, res, next) => {
   next(new ErrorHandler(404, `Can't find ${req.originalUrl} on this server!`));

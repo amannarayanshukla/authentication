@@ -40,11 +40,15 @@ const handleError = (err, res) => {
     ) {
       statusCode = 400;
       message = `invalid refresh token `;
+    } else if (err.__proto__.name.toLowerCase() === "typeerror") {
+      statusCode = 500;
+      message = "internal server error";
     }
   } else if (err.code === 11000) {
     statusCode = 400;
     message = `Email or username already in use.`;
-  } else if (!statusCode) {
+  }
+  if (!statusCode) {
     statusCode = 500;
   }
   res.status(statusCode).json({
