@@ -8,9 +8,9 @@ const { ErrorHandler } = require("../util/errorhandling");
 const { asyncHandler } = require("../util/asyncHandler");
 const { client } = require("../config/db");
 
-// @desc register a user
-// @route POST /api/v1/auth/register
-// @access Public
+//  @desc register a user
+//  @route POST /api/v1/auth/register
+//  @access Public
 exports.register = asyncHandler(async (req, res, next) => {
   const uuid = uuidv4();
   const { email, name, username, password, role } = req.body;
@@ -57,9 +57,9 @@ exports.register = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc login a user
-// @route POST /api/v1/auth/login
-// @access Public
+//  @desc login a user
+//  @route POST /api/v1/auth/login
+//  @access Public
 exports.login = asyncHandler(async (req, res, next) => {
   const { email, password } = req.body;
   let uuid, accessToken, refreshToken;
@@ -115,9 +115,9 @@ exports.login = asyncHandler(async (req, res, next) => {
     });
 });
 
-// @desc logout a user
-// @route POST /api/v1/auth/logout
-// @access private
+//  @desc logout a user
+//  @route POST /api/v1/auth/logout
+//  @access private
 exports.logout = asyncHandler(async (req, res, next) => {
   const user = await Users.findOne({ email: req.email });
   user.accessToken = undefined;
@@ -134,9 +134,9 @@ exports.logout = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc forgot a user's password
-// @route POST /api/v1/auth/forgot
-// @access public
+//  @desc forgot a user's password
+//  @route POST /api/v1/auth/forgot
+//  @access public
 exports.forgot = asyncHandler(async (req, res, next) => {
   //create a unique token
   const resetPasswordToken = crypto.randomBytes(16).toString("hex");
@@ -182,9 +182,9 @@ exports.forgot = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc check if token is valid or not
-// @route GET /api/v1/auth/reset
-// @access public
+//  @desc check if token is valid or not
+//  @route GET /api/v1/auth/reset
+//  @access public
 exports.resetPassword = asyncHandler(async (req, res, next) => {
   const token = req.params.token;
   const user = await Users.findOne({
@@ -203,9 +203,9 @@ exports.resetPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc reset user's password
-// @route POST /api/v1/auth/reset
-// @access public
+//  @desc reset user's password
+//  @route POST /api/v1/auth/reset
+//  @access public
 exports.addPassword = asyncHandler(async (req, res, next) => {
   const token = req.params.token;
   const { newPassword } = req.body;
@@ -258,9 +258,9 @@ exports.addPassword = asyncHandler(async (req, res, next) => {
   });
 });
 
-// @desc refresh the user's access token
-//@route POST /api/v1/auth/token
-//@access public
+//  @desc refresh the user's access token
+//  @route POST /api/v1/auth/token
+//  @access public
 exports.token = asyncHandler(async (req, res, next) => {
   //refresh token is something that changes frequently should be index it??
   const { refreshToken } = req.body;
@@ -303,4 +303,18 @@ exports.token = asyncHandler(async (req, res, next) => {
         uuid,
       },
     });
+});
+
+//  @desc get users information
+//  @route GET /api/v1/me
+//  @access private
+exports.me = asyncHandler(async (req, res, next) => {
+  const user = Users.find({ email: req.email });
+  if (!user) {
+    return next(new ErrorHandler(400, `user not found`));
+  }
+  return res.status(200).json({
+    success: true,
+    data: user,
+  });
 });
