@@ -7,6 +7,7 @@ const Users = require("../model/user.auth");
 const { ErrorHandler } = require("../util/errorhandling");
 const { asyncHandler } = require("../util/asyncHandler");
 const { client } = require("../config/db");
+const { publishToQueue } = require("../amqp");
 
 //  @desc register a user
 //  @route POST /api/v1/auth/register
@@ -316,5 +317,17 @@ exports.me = asyncHandler(async (req, res, next) => {
   return res.status(200).json({
     success: true,
     data: user,
+  });
+});
+
+/*
+ * @desc post message
+ * */
+exports.msg = asyncHandler(async (req, res, next) => {
+  let { queueName, payload } = req.body;
+  await publishToQueue(queueName, payload);
+  return res.status(200).json({
+    success: true,
+    data: "message-sent",
   });
 });

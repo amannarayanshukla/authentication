@@ -1,6 +1,7 @@
 "use strict";
 const mongoose = require("mongoose");
 const redis = require("redis");
+// const ampq = require("amqplib");
 
 // Connection URL
 const url = process.env.MONGODB_URL;
@@ -11,12 +12,25 @@ const dbName = process.env.DATABASE_NAME;
 //configure redis client
 const client = redis.createClient(process.env.REDIS_PORT);
 
+let ch = null;
+
 const db = async () => {
   mongoose.connect(url + dbName, {
     useCreateIndex: true,
     useNewUrlParser: true,
     useUnifiedTopology: true,
   });
+
+  // ampq.connect(process.env.RABBITMQ_URL, function (err, conn) {
+  //   if (err) {
+  //     console.log("Error connecting to RabbitMQ");
+  //   }
+  //   console.log("RabbitMQ connection is now open".cyan);
+  //
+  //   conn.createChannel(function (err, channel) {
+  //     ch = channel;
+  //   });
+  // });
 
   client.on("connect", function () {
     console.error(`Redis default connection is open`.cyan);
@@ -47,10 +61,20 @@ const db = async () => {
       process.exit(0);
     });
   });
+
+  // process.on("exit", (code) => {
+  //   ch.close();
+  //   console.log("Closing rabbitmq channel".blue);
+  // });
+};
+
+const publishToQueue = async (queueName, data) => {
+  ch.sendToQueue(queueName, new Buffer(data));
 };
 
 // Use connect method to connect to the server
 module.exports = {
   db,
   client,
+  // publishToQueue,
 };
