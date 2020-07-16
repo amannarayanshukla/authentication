@@ -11,6 +11,7 @@ const {
   addPassword,
   token,
   me,
+  msg,
 } = require("../controller/user.auth");
 
 const router = express.Router();
@@ -21,6 +22,8 @@ router.route("/auth/login").post(login);
 router.route("/auth/logout").post(jwtVerification, logout);
 router.route("/auth/forgot").post(forgot);
 router.route("/auth/token").post(token);
-router.route("/me").get(jwtVerification, me);
+router.route("/auth/me").get(jwtVerification, me);
+
+router.route("/msg").post(msg);
 
 module.exports = router;
