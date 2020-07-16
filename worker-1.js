@@ -1,6 +1,5 @@
 // var amqp = require("amqplib/callback_api");
 // const CONN_URL =
-//   "amqp://dtxzyfqn:j9MInR3Qq6lyLQJCGHjnqRv4jFQ7G8WY@lionfish.rmq.cloudamqp.com/dtxzyfqn";
 // amqp.connect(CONN_URL, function (err, conn) {
 //   conn.createChannel(function (err, ch) {
 //     ch.consume(
