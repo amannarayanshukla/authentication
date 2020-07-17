@@ -1,6 +1,6 @@
 const amqp = require("amqplib/callback_api");
 const CONN_URL = "";
-let ch = null;
+let cha = null;
 amqp.connect(CONN_URL, function (err, conn) {
   //
   if (err) {
