@@ -24,16 +24,16 @@ amqp.connect(CONN_URL, function (err, conn) {
     return console.log("rabbitMQ error");
   }
 
-  //create channel
+  // create channel
   conn.createChannel(function (err, channel) {
     if (err) {
       console.log(err, "error creating channel");
     }
-    //Assert queue
+    // Assert queue
     const QUEUE = "some queue";
     channel.assertQueue(QUEUE);
 
-    //Send message to queue
+    // Send message to queue
     channel.consume(
       QUEUE,
       (msg) => {

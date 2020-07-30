@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "dev": "npm run lint && nodemon server.js",
-    "lint": "eslint --fix . && echo 'Lint complete.'",
-    "watch": "watch 'clear && npm run -s test | tap-nirvana && npm run -s lint' src"
+    "lint": "eslint --fix . && echo 'Lint complete.'"
   },
   "keywords": [
     "authentication"
