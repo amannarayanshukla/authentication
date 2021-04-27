@@ -25,7 +25,7 @@
     "mongodb": "^3.5.9",
     "mongoose": "^5.9.21",
     "nodemailer": "^6.4.10",
-    "redis": "^3.0.2",
+    "redis": "^3.1.1",
     "uuid": "^8.2.0",
     "validator": "^13.1.1"
   },
